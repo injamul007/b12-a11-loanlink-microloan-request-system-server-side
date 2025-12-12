@@ -1,5 +1,5 @@
 # Project/Assignment Microloan Server Side information
-## install nodeJS, expressJS
-## install mongodb for database
-## install cors for middleware
-## install dotenv for environment variables
+## install npm expressJS
+## install npm mongodb for database
+## install npm cors for middleware
+## install npm dotenv for environment variables
