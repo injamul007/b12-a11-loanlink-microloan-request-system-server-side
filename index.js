@@ -53,6 +53,24 @@ async function run() {
       }
     });
 
+    //? get api for all loans in the all loans page
+    app.get('/all-loans', async(req,res) => {
+      try {
+        const result = await loansCollection.find().toArray()
+        res.status(200).json({
+          status: true,
+          message: 'Get all loans api successful',
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get all the loans in all loans page",
+          error: error.message,
+        })
+      }
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
