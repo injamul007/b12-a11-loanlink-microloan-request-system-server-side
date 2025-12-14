@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 3000;
 
 //? middlewares
@@ -66,6 +66,43 @@ async function run() {
         res.status(500).json({
           status: false,
           message: "Failed to get all the loans in all loans page",
+          error: error.message,
+        })
+      }
+    })
+
+    //? single get api by calling its id
+    app.get('/all-loans/:id', async(req,res) => {
+      try {
+        const loanId = req.params.id;
+
+        if(!ObjectId.isValid(loanId)) {
+          return res.status(400).json({
+            status: false,
+            message: "Invalid Object id",
+          })
+        }
+
+        const query = {_id: new ObjectId(loanId)}
+        const result = await loansCollection.findOne(query)
+
+        if(!result) {
+          return res.status(404).json({
+            status: false,
+            message: "Loan Not Found",
+          })
+        }
+
+        res.status(200).json({
+          status: true,
+          message: "Single loan api data by id successful",
+          result,
+        })
+
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to get single loan api data by id from db',
           error: error.message,
         })
       }
