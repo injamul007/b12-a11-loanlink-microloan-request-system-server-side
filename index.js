@@ -33,6 +33,62 @@ async function run() {
     //? Database and collection setup
     const db = client.db("microloanDB");
     const loansCollection = db.collection("loans");
+    const usersCollection = db.collection('users')
+
+
+    //? save users data in db
+    app.post('/users', async(req,res) => {
+      try {
+        const userData = req.body
+
+        //? validate user email and name
+        if(!userData?.email || !userData?.name) {
+          return res.status(400).json({
+            status: false,
+            message: "User email and name is required"
+          })
+        }
+
+        let allowedRoles = ['borrower', 'manager']
+        let role = allowedRoles.includes(userData.role) ? userData.role : 'borrower'
+        
+        userData.role = role;
+        userData.created_At = new Date();
+        userData.last_loggedIn = new Date();
+
+        const query = {email: userData.email}
+        const exitingUser = await usersCollection.findOne(query)
+        
+        //? validate the user is already stored in db or not
+        if(exitingUser) {
+          const update = {
+            $set: {
+              last_loggedIn: new Date(),
+            }
+          }
+          const updateUser = await usersCollection.updateOne(query, update)
+          return res.status(200).json({
+            status: true,
+            message: 'User Already Exits and last loggedIn updated',
+            updateUser,
+          })
+        }
+
+        const result = await usersCollection.insertOne(userData)
+        res.status(201).json({
+          status: false,
+          message: "All the users data save in db successful",
+          result,
+        })
+
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to post users data on db",
+          error: error.message,
+        })
+      }
+    })
 
     //? available loans get api by show on home with limit
     app.get("/available-loans", async (req, res) => {
