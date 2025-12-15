@@ -66,6 +66,7 @@ async function run() {
     const db = client.db("microloanDB");
     const loansCollection = db.collection("loans");
     const usersCollection = db.collection("users");
+    const loanApplicationCollection = db.collection('loanApplication');
 
     //? save users data in db
     app.post("/users", async (req, res) => {
@@ -194,6 +195,54 @@ async function run() {
         });
       }
     });
+
+    //? post api for loan application to store in db
+    app.post('/loan-application', async(req,res) => {
+      try {
+        const applicationData = req.body;
+
+        //? validate the application data if not available
+        if(!applicationData || Object.keys(applicationData).length === 0) {
+          return res.status(400).json({
+            status: false,
+            message: 'Loan Application Data Required',
+          })
+        }
+
+        //? convert those into Number for validation
+        const monthlyIncome = Number(applicationData.monthly_income); 
+        const loanAmount = Number(applicationData.loan_amount); 
+
+        //? validate number or negative
+        if(isNaN(monthlyIncome) || monthlyIncome < 0 || isNaN(loanAmount) || loanAmount < 0) {
+          return res.status(400).json({
+            status: false,
+            message: 'Invalid Loan Amount or Monthly Income',
+          })
+        }
+
+        applicationData.monthly_income = monthlyIncome
+        applicationData.loan_amount = loanAmount
+        applicationData.status = 'pending'
+        applicationData.application_fee_status = 'unpaid'
+        applicationData.created_at = new Date();
+
+        const result = await loanApplicationCollection.insertOne(applicationData)
+
+        res.status(201).json({
+          status: true,
+          message: 'Post Loan Application Successful',
+          result,
+        })
+
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to post loan application',
+          error: error.message,
+        })
+      }
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
