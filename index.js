@@ -282,6 +282,25 @@ async function run() {
       }
     })
 
+    //? get api for getting all the approved application form by status
+    app.get('/approved-application', verifyJWT, async(req,res) => {
+      try {
+        const query = {status: 'approved'}
+        const result = await loanApplicationCollection.find(query).toArray()
+        res.status(200).json({
+          status: true,
+          message: 'Get all the approved application by status is successful',
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to get all the approved application by status',
+          error: error.message,
+        })
+      }
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
