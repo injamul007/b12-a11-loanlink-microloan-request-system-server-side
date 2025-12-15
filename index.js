@@ -282,6 +282,32 @@ async function run() {
       }
     })
 
+    //? post single api for approved application in pending application page
+    app.patch('/pending-application/:id', async(req,res) => {
+      try {
+        const pendingLoanId = req.params.id;
+        const query = {_id: new ObjectId(pendingLoanId)}
+        const update = {
+          $set : {
+            status: 'approved',
+            approved_at: new Date(),
+          }
+        }
+        const result = await loanApplicationCollection.updateOne(query,update)
+        res.status(200).json({
+          status: true,
+          message: "Patch single pending application data by status successful",
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to patch single pending application data by status",
+          error: error.message,
+        })
+      }
+    })
+
     //? get api for getting all the approved application form by status
     app.get('/approved-application', verifyJWT, async(req,res) => {
       try {
