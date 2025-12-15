@@ -248,7 +248,7 @@ async function run() {
     app.get('/my-loans', verifyJWT, async(req, res) => {
       try {
         const query = {borrower_email : req.tokenEmail}
-        const result = await loanApplicationCollection.find(query).toArray()
+        const result = await loanApplicationCollection.find(query).sort({approved_at: -1}).toArray()
         res.status(200).json({
           status: true,
           message: 'Get all my loan application by email successful',
@@ -267,7 +267,7 @@ async function run() {
     app.get('/pending-application', verifyJWT, async(req,res) => {
       try {
         const query = {status: 'pending'}
-        const result = await loanApplicationCollection.find(query).toArray()
+        const result = await loanApplicationCollection.find(query).sort({created_at: -1}).toArray()
         res.status(200).json({
           status: true,
           message: 'Get all the pending application by status is successful',
