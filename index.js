@@ -312,7 +312,7 @@ async function run() {
     app.get('/approved-application', verifyJWT, async(req,res) => {
       try {
         const query = {status: 'approved'}
-        const result = await loanApplicationCollection.find(query).toArray()
+        const result = await loanApplicationCollection.find(query).sort({approved_at: -1}).toArray()
         res.status(200).json({
           status: true,
           message: 'Get all the approved application by status is successful',
