@@ -244,6 +244,25 @@ async function run() {
       }
     })
 
+    //? get api for getting all my loan application by email
+    app.get('/my-loans', verifyJWT, async(req, res) => {
+      try {
+        const query = {borrower_email : req.tokenEmail}
+        const result = await loanApplicationCollection.find(query).toArray()
+        res.status(200).json({
+          status: true,
+          message: 'Get all my loan application by email successful',
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get all my loan application by email",
+          error: error.message,
+        })
+      }
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
