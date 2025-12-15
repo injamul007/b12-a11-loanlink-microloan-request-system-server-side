@@ -283,7 +283,7 @@ async function run() {
     })
 
     //? post single api for approved application in pending application page
-    app.patch('/pending-application/:id', async(req,res) => {
+    app.patch('/pending-application/approved/:id', verifyJWT, async(req,res) => {
       try {
         const pendingLoanId = req.params.id;
         const query = {_id: new ObjectId(pendingLoanId)}
