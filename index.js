@@ -66,7 +66,7 @@ async function run() {
     const db = client.db("microloanDB");
     const loansCollection = db.collection("loans");
     const usersCollection = db.collection("users");
-    const loanApplicationCollection = db.collection('loanApplication');
+    const loanApplicationCollection = db.collection("loanApplication");
 
     //? save users data in db
     app.post("/users", async (req, res) => {
@@ -197,160 +197,234 @@ async function run() {
     });
 
     //? post api for loan application to store in db
-    app.post('/loan-application', async(req,res) => {
+    app.post("/loan-application", async (req, res) => {
       try {
         const applicationData = req.body;
 
         //? validate the application data if not available
-        if(!applicationData || Object.keys(applicationData).length === 0) {
+        if (!applicationData || Object.keys(applicationData).length === 0) {
           return res.status(400).json({
             status: false,
-            message: 'Loan Application Data Required',
-          })
+            message: "Loan Application Data Required",
+          });
         }
 
         //? convert those into Number for validation
-        const monthlyIncome = Number(applicationData.monthly_income); 
-        const loanAmount = Number(applicationData.loan_amount); 
+        const monthlyIncome = Number(applicationData.monthly_income);
+        const loanAmount = Number(applicationData.loan_amount);
 
         //? validate number or negative
-        if(isNaN(monthlyIncome) || monthlyIncome < 0 || isNaN(loanAmount) || loanAmount < 0) {
+        if (
+          isNaN(monthlyIncome) ||
+          monthlyIncome < 0 ||
+          isNaN(loanAmount) ||
+          loanAmount < 0
+        ) {
           return res.status(400).json({
             status: false,
-            message: 'Invalid Loan Amount or Monthly Income',
-          })
+            message: "Invalid Loan Amount or Monthly Income",
+          });
         }
 
-        applicationData.monthly_income = monthlyIncome
-        applicationData.loan_amount = loanAmount
-        applicationData.status = 'pending'
-        applicationData.application_fee_status = 'unpaid'
+        applicationData.monthly_income = monthlyIncome;
+        applicationData.loan_amount = loanAmount;
+        applicationData.status = "pending";
+        applicationData.application_fee_status = "unpaid";
         applicationData.created_at = new Date();
 
-        const result = await loanApplicationCollection.insertOne(applicationData)
+        const result = await loanApplicationCollection.insertOne(
+          applicationData
+        );
 
         res.status(201).json({
           status: true,
-          message: 'Post Loan Application Successful',
+          message: "Post Loan Application Successful",
           result,
-        })
-
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: 'Failed to post loan application',
+          message: "Failed to post loan application",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     //? get api for getting all my loan application by email
-    app.get('/my-loans', verifyJWT, async(req, res) => {
+    app.get("/my-loans", verifyJWT, async (req, res) => {
       try {
-        const query = {borrower_email : req.tokenEmail}
-        const result = await loanApplicationCollection.find(query).sort({approved_at: -1}).toArray()
+        const query = { borrower_email: req.tokenEmail };
+        const result = await loanApplicationCollection
+          .find(query)
+          .sort({ approved_at: -1 })
+          .toArray();
         res.status(200).json({
           status: true,
-          message: 'Get all my loan application by email successful',
+          message: "Get all my loan application by email successful",
           result,
-        })
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
           message: "Failed to get all my loan application by email",
           error: error.message,
-        })
+        });
       }
-    })
+    });
+
+    //? delete single api for pending loan application in my loans page
+    app.delete("/my-loans/canceled/:id", verifyJWT, async (req, res) => {
+      try {
+        const pendingLoanId = req.params.id;
+        //? validate the loan application id
+        if (!ObjectId.isValid(pendingLoanId)) {
+          return res.status(400).json({
+            status: false,
+            message: "Invalid loan application id",
+          });
+        }
+        const query = { _id: new ObjectId(pendingLoanId) };
+        const result = await loanApplicationCollection.deleteOne(query);
+        res.status(200).json({
+          status: true,
+          message: "Deleted single pending loan application successful",
+          result,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to deleted single pending loan application",
+          error: error.message,
+        });
+      }
+    });
 
     //? get api for getting all the pending application form by status
-    app.get('/pending-application', verifyJWT, async(req,res) => {
+    app.get("/pending-application", verifyJWT, async (req, res) => {
       try {
-        const query = {status: 'pending'}
-        const result = await loanApplicationCollection.find(query).sort({created_at: -1}).toArray()
+        const query = { status: "pending" };
+        const result = await loanApplicationCollection
+          .find(query)
+          .sort({ created_at: -1 })
+          .toArray();
         res.status(200).json({
           status: true,
-          message: 'Get all the pending application by status is successful',
+          message: "Get all the pending application by status is successful",
           result,
-        })
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: 'Failed to get all the pending application by status',
+          message: "Failed to get all the pending application by status",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     //? patch single api for approved application in pending application page
-    app.patch('/pending-application/approved/:id', verifyJWT, async(req,res) => {
-      try {
-        const pendingLoanId = req.params.id;
-        const query = {_id: new ObjectId(pendingLoanId)}
-        const update = {
-          $set : {
-            status: 'approved',
-            approved_at: new Date(),
+    app.patch(
+      "/pending-application/approved/:id",
+      verifyJWT,
+      async (req, res) => {
+        try {
+          const pendingLoanId = req.params.id;
+          //? validate the loan application id
+          if (!ObjectId.isValid(pendingLoanId)) {
+            return res.status(400).json({
+              status: false,
+              message: "Invalid loan application id",
+            });
           }
+          const query = { _id: new ObjectId(pendingLoanId) };
+          const update = {
+            $set: {
+              status: "approved",
+              approved_at: new Date(),
+            },
+          };
+          const result = await loanApplicationCollection.updateOne(
+            query,
+            update
+          );
+          res.status(200).json({
+            status: true,
+            message:
+              "Patch single pending application data by status approved successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message:
+              "Failed to patch single pending application data by status approved",
+            error: error.message,
+          });
         }
-        const result = await loanApplicationCollection.updateOne(query,update)
-        res.status(200).json({
-          status: true,
-          message: "Patch single pending application data by status approved successful",
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to patch single pending application data by status approved",
-          error: error.message,
-        })
       }
-    })
+    );
 
     //? patch single api for rejected application in pending application page
-    app.patch('/pending-application/rejected/:id', verifyJWT, async(req,res) => {
-      try {
-        const pendingLoanId = req.params.id;
-        const query = {_id: new ObjectId(pendingLoanId)}
-        const update = {
-          $set : {
-            status: 'rejected',
+    app.patch(
+      "/pending-application/rejected/:id",
+      verifyJWT,
+      async (req, res) => {
+        try {
+          const pendingLoanId = req.params.id;
+          //? validate the loan application id
+          if (!ObjectId.isValid(pendingLoanId)) {
+            return res.status(400).json({
+              status: false,
+              message: "Invalid loan application id",
+            });
           }
+          const query = { _id: new ObjectId(pendingLoanId) };
+          const update = {
+            $set: {
+              status: "rejected",
+            },
+          };
+          const result = await loanApplicationCollection.updateOne(
+            query,
+            update
+          );
+          res.status(200).json({
+            status: true,
+            message:
+              "Patch single pending application data by status rejected successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message:
+              "Failed to patch single pending application data by status rejected",
+            error: error.message,
+          });
         }
-        const result = await loanApplicationCollection.updateOne(query,update)
-        res.status(200).json({
-          status: true,
-          message: "Patch single pending application data by status rejected successful",
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to patch single pending application data by status rejected",
-          error: error.message,
-        })
       }
-    })
+    );
 
     //? get api for getting all the approved application form by status
-    app.get('/approved-application', verifyJWT, async(req,res) => {
+    app.get("/approved-application", verifyJWT, async (req, res) => {
       try {
-        const query = {status: 'approved'}
-        const result = await loanApplicationCollection.find(query).sort({approved_at: -1}).toArray()
+        const query = { status: "approved" };
+        const result = await loanApplicationCollection
+          .find(query)
+          .sort({ approved_at: -1 })
+          .toArray();
         res.status(200).json({
           status: true,
-          message: 'Get all the approved application by status is successful',
+          message: "Get all the approved application by status is successful",
           result,
-        })
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: 'Failed to get all the approved application by status',
+          message: "Failed to get all the approved application by status",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
