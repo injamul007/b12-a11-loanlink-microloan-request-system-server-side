@@ -282,7 +282,7 @@ async function run() {
       }
     })
 
-    //? post single api for approved application in pending application page
+    //? patch single api for approved application in pending application page
     app.patch('/pending-application/approved/:id', verifyJWT, async(req,res) => {
       try {
         const pendingLoanId = req.params.id;
@@ -296,13 +296,38 @@ async function run() {
         const result = await loanApplicationCollection.updateOne(query,update)
         res.status(200).json({
           status: true,
-          message: "Patch single pending application data by status successful",
+          message: "Patch single pending application data by status approved successful",
           result,
         })
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: "Failed to patch single pending application data by status",
+          message: "Failed to patch single pending application data by status approved",
+          error: error.message,
+        })
+      }
+    })
+
+    //? patch single api for rejected application in pending application page
+    app.patch('/pending-application/rejected/:id', verifyJWT, async(req,res) => {
+      try {
+        const pendingLoanId = req.params.id;
+        const query = {_id: new ObjectId(pendingLoanId)}
+        const update = {
+          $set : {
+            status: 'rejected',
+          }
+        }
+        const result = await loanApplicationCollection.updateOne(query,update)
+        res.status(200).json({
+          status: true,
+          message: "Patch single pending application data by status rejected successful",
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to patch single pending application data by status rejected",
           error: error.message,
         })
       }
