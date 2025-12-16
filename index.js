@@ -273,42 +273,43 @@ async function run() {
     });
 
     //? get single api to show loan details from loan application in my loans page
-    app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
-      try {
-        const loanId = req.params.id;
+    // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
+    //   try {
+    //     const loanId = req.params.id;
 
-        //? validate id is available or not
-        if (!loanId || typeof loanId !== "string") {
-          return res.status(400).json({
-            status: false,
-            message: "Invalid loan id",
-          });
-        }
-        const query = {loanId}
-        const result = await loansCollection.findOne(query)
+    //     //? validate id is available or not
+    //     if (!loanId || typeof loanId !== "string") {
+    //       return res.status(400).json({
+    //         status: false,
+    //         message: "Invalid loan id",
+    //       });
+    //     }
+    //     const query = {loanId}
+    //     const result = await loansCollection.findOne(query)
 
-        //? validate result is available or not
-        if(!result) {
-          return res.status(404).json({
-            status: false,
-            message: 'Loan not found',
-          })
-        }
+    //     //? validate result is available or not
+    //     if(!result) {
+    //       return res.status(404).json({
+    //         status: false,
+    //         message: 'Loan not found',
+    //       })
+    //     }
 
-        res.status(200).json({
-          status: true,
-          message: "Get Single Loan by id successful in my loans page",
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to get single api data to view loan details",
-          error: error.message,
-        });
-      }
-    });
+    //     res.status(200).json({
+    //       status: true,
+    //       message: "Get Single Loan by id successful in my loans page",
+    //       result,
+    //     })
+    //   } catch (error) {
+    //     res.status(500).json({
+    //       status: false,
+    //       message: "Failed to get single api data to view loan details",
+    //       error: error.message,
+    //     });
+    //   }
+    // });
 
+    
     //? delete single api for pending loan application in my loans page
     app.delete("/my-loans/canceled/:id", verifyJWT, async (req, res) => {
       try {
