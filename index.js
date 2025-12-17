@@ -337,6 +337,25 @@ async function run() {
       }
     });
 
+    //? get all the loans added by manager by manager email
+    app.get('/manage-loans', verifyJWT, async(req,res)=> {
+      try {
+        const query = {created_by: req.tokenEmail}
+        const result = await loansCollection.find(query).sort({ created_at: -1 }).toArray()
+        res.status(200).json({
+          status: true,
+          message: 'Get all the loans by manager email successful',
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to get all the loans by manager email',
+          error: error.message,
+        })
+      }
+    })
+
     //? get single api to show loan details from loan application in my loans page
     // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
     //   try {
