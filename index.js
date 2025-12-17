@@ -15,6 +15,14 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
+//? Generate Loan Tracking Id for Every Loan Unique Id
+function generateLoanTrackingId() {
+  const prefix = "LN"; // brand prefix
+  const time = Date.now().toString(36); // compact timestamp
+  const rand = Math.random().toString(36).slice(2, 8); // 6-chars random
+  return `${prefix}-${time}-${rand.toUpperCase()}`;
+}
+
 //? middlewares
 app.use(
   cors({
@@ -195,6 +203,63 @@ async function run() {
         });
       }
     });
+
+    //? post api for add loan in loanCollection
+    app.post('/add-loan', verifyJWT, async(req,res) => {
+      try {
+        const loanData = req.body
+
+        //? validate newLoans data if not found
+        if(!loanData || Object.keys(loanData).length === 0) {
+          return res.status(400).json({
+            status: false,
+            message: "Loans data required!!",
+          })
+        }
+
+        //? convert max loan limit into Number for validation
+        const maxLoanLimitNum = Number(loanData.max_loan_limit);
+
+        //? validate number or negative
+        if (
+          isNaN(maxLoanLimitNum) ||
+          maxLoanLimitNum < 0 ) {
+          return res.status(400).json({
+            status: false,
+            message: "Invalid Max Loan Limit",
+          });
+        }
+
+        const newLoans = {
+        loanId: generateLoanTrackingId(),
+        loan_title: loanData.loan_title,
+        image: loanData.image,
+        description: loanData.description,
+        category: loanData.category,
+        interest_rate: loanData.interest_rate,
+        max_loan_limit: maxLoanLimitNum,
+        required_documents: loanData.required_documents,
+        emi_plans: loanData.emi_plans,
+        show_on_home: loanData.show_on_home,
+        created_by: loanData.created_by,
+        created_at: new Date(),
+      };
+
+        const result = await loansCollection.insertOne(newLoans)
+        res.status(201).json({
+          status: true,
+          message: "Post api for loan data save successful",
+          result,
+        })
+
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to post api data loans',
+          error: error.message,
+        })
+      }
+    })
 
     //? post api for loan application to store in db
     app.post("/loan-application", async (req, res) => {
