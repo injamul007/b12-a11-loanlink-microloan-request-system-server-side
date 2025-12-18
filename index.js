@@ -205,25 +205,23 @@ async function run() {
     });
 
     //? post api for add loan in loanCollection
-    app.post('/add-loan', verifyJWT, async(req,res) => {
+    app.post("/add-loan", verifyJWT, async (req, res) => {
       try {
-        const loanData = req.body
+        const loanData = req.body;
 
         //? validate newLoans data if not found
-        if(!loanData || Object.keys(loanData).length === 0) {
+        if (!loanData || Object.keys(loanData).length === 0) {
           return res.status(400).json({
             status: false,
             message: "Loans data required!!",
-          })
+          });
         }
 
         //? convert max loan limit into Number for validation
         const maxLoanLimitNum = Number(loanData.max_loan_limit);
 
         //? validate number or negative
-        if (
-          isNaN(maxLoanLimitNum) ||
-          maxLoanLimitNum < 0 ) {
+        if (isNaN(maxLoanLimitNum) || maxLoanLimitNum < 0) {
           return res.status(400).json({
             status: false,
             message: "Invalid Max Loan Limit",
@@ -231,35 +229,34 @@ async function run() {
         }
 
         const newLoans = {
-        loanId: generateLoanTrackingId(),
-        loan_title: loanData.loan_title,
-        image: loanData.image,
-        description: loanData.description,
-        category: loanData.category,
-        interest_rate: loanData.interest_rate,
-        max_loan_limit: maxLoanLimitNum,
-        required_documents: loanData.required_documents,
-        emi_plans: loanData.emi_plans,
-        show_on_home: loanData.show_on_home,
-        created_by: loanData.created_by,
-        created_at: new Date(),
-      };
+          loanId: generateLoanTrackingId(),
+          loan_title: loanData.loan_title,
+          image: loanData.image,
+          description: loanData.description,
+          category: loanData.category,
+          interest_rate: loanData.interest_rate,
+          max_loan_limit: maxLoanLimitNum,
+          required_documents: loanData.required_documents,
+          emi_plans: loanData.emi_plans,
+          show_on_home: loanData.show_on_home,
+          created_by: loanData.created_by,
+          created_at: new Date(),
+        };
 
-        const result = await loansCollection.insertOne(newLoans)
+        const result = await loansCollection.insertOne(newLoans);
         res.status(201).json({
           status: true,
           message: "Post api for loan data save successful",
           result,
-        })
-
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: 'Failed to post api data loans',
+          message: "Failed to post api data loans",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     //? post api for loan application to store in db
     app.post("/loan-application", async (req, res) => {
@@ -338,23 +335,28 @@ async function run() {
     });
 
     //? get all the loans added by manager by manager email
-    app.get('/manage-loans', verifyJWT, async(req,res)=> {
+    app.get("/manage-loans", verifyJWT, async (req, res) => {
       try {
-        const query = {created_by: req.tokenEmail}
-        const result = await loansCollection.find(query).sort({ created_at: -1 }).toArray()
+        const query = { created_by: req.tokenEmail };
+        const result = await loansCollection
+          .find(query)
+          .sort({ created_at: -1 })
+          .toArray();
         res.status(200).json({
           status: true,
-          message: 'Get all the loans by manager email successful',
+          message: "Get all the loans by manager email successful",
           result,
-        })
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
-          message: 'Failed to get all the loans by manager email',
+          message: "Failed to get all the loans by manager email",
           error: error.message,
-        })
+        });
       }
-    })
+    });
+
+    
 
     //? get single api to show loan details from loan application in my loans page
     // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
@@ -393,7 +395,6 @@ async function run() {
     //   }
     // });
 
-    
     //? delete single api for pending loan application in my loans page
     app.delete("/my-loans/canceled/:id", verifyJWT, async (req, res) => {
       try {
