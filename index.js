@@ -356,7 +356,33 @@ async function run() {
       }
     });
 
-    
+    //? get api for single loan to show prefilled update form
+    app.get("/manage-loans/:id", async (req, res) => {
+      try {
+        const loan_id = req.params.id;
+        const query = { _id: new ObjectId(loan_id) };
+        const loan = await loansCollection.findOne(query);
+
+        //? validate result
+        if (!loan) {
+          return res.status(404).json({
+            status: false,
+            message: "Loan not found",
+          });
+        }
+        res.status(200).json({
+          status: true,
+          message: "Get api for single data successful",
+          loan,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get single loan data",
+          error: error.message,
+        });
+      }
+    });
 
     //? get single api to show loan details from loan application in my loans page
     // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
