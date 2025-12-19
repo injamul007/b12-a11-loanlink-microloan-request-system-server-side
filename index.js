@@ -131,6 +131,24 @@ async function run() {
       }
     });
 
+    //? get the role of a user by users email
+    app.get('/users/role', verifyJWT, async(req,res) => {
+      try {
+        const result = await usersCollection.findOne({email: req.tokenEmail})
+        res.status(200).json({
+          status: true,
+          message: "Get the users role by email successful",
+          role: result?.role,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get users role by email",
+          error: error.message,
+        })
+      }
+    })
+
     //? available loans get api by show on home with limit
     app.get("/available-loans", async (req, res) => {
       try {
@@ -169,7 +187,7 @@ async function run() {
     });
 
     //? single get api by calling its id
-    app.get("/all-loans/:id", async (req, res) => {
+    app.get("/all-loans/:id", verifyJWT, async (req, res) => {
       try {
         const loanId = req.params.id;
 
