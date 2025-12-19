@@ -23,7 +23,7 @@ function generateLoanTrackingId() {
   return `${prefix}-${time}-${rand.toUpperCase()}`;
 }
 
-//? middlewares
+//? ---- middlewares -------
 app.use(
   cors({
     origin: [process.env.CLIENT_DOMAIN_URL],
@@ -379,6 +379,53 @@ async function run() {
         res.status(500).json({
           status: false,
           message: "Failed to get single loan data",
+          error: error.message,
+        });
+      }
+    });
+
+    //? patch api for single loan to update the loan from update form page
+    app.patch("/manage-loans/update-loan/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const updatedData = req.body;
+
+        const existingLoan = await loansCollection.findOne(query);
+
+        if (!existingLoan) {
+          return res.status(404).json({
+            status: false,
+            message: "Loan not found",
+          });
+        }
+
+        const updateDoc = {
+          $set: {
+            loan_title: updatedData.loan_title,
+            category: updatedData.category,
+            description: updatedData.description,
+            interest_rate: updatedData.interest_rate,
+            max_loan_limit: Number(updatedData.max_loan_limit),
+            required_documents: updatedData.required_documents,
+            emi_plans: updatedData.emi_plans,
+            show_on_home: !!updatedData.show_on_home,
+            image: updatedData.image,
+            updated_at: new Date(),
+          },
+        };
+
+        const updateResult = await loansCollection.updateOne(query, updateDoc);
+
+        res.status(200).json({
+          status: true,
+          message: "Loan updated successfully",
+          updateResult,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to update loan",
           error: error.message,
         });
       }
