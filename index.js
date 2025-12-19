@@ -431,6 +431,33 @@ async function run() {
       }
     });
 
+    //? Delete api for single loan to delete the loan in manage loans page
+    app.delete('/manage-loans/deleted/:id', async(req,res) => {
+      try {
+        const loan_id = req.params.id;
+        //? validate loan id is valid or not
+        if(!ObjectId.isValid(loan_id)) {
+          return res.status(400).json({
+            status: false,
+            message: "Invalid loan id",
+          })
+        }
+        const query = {_id: new ObjectId(loan_id)}
+        const result = await loansCollection.deleteOne(query)
+        res.status(200).json({
+          status: true,
+          message: "Deleted single loan successful",
+          result,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to delete single loan",
+          error: error.message,
+        })
+      }
+    })
+
     //? get single api to show loan details from loan application in my loans page
     // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
     //   try {
