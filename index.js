@@ -153,7 +153,7 @@ async function run() {
     app.get("/available-loans", async (req, res) => {
       try {
         const query = { show_on_home: true };
-        const result = await loansCollection.find(query).limit(6).toArray();
+        const result = await loansCollection.find(query).sort({created_at: -1}).limit(6).toArray();
         res.status(200).json({
           status: true,
           message: "Available loans get api successful",
@@ -717,6 +717,24 @@ async function run() {
         res.status(500).json({
           status: false,
           message: 'Failed to patch/update users role',
+          error: error.message,
+        })
+      }
+    })
+
+    //? Get api for get all the loans in manage users in admin panel
+    app.get('/manage-users/all-loan', verifyJWT, async(req,res) => {
+      try {
+        const result = await loansCollection.find().sort({ created_at: -1 }).toArray()
+        res.status(200).json({
+          status: true,
+          message: 'Get all loan in admin panel Successful',
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to get all loan in admin panel',
           error: error.message,
         })
       }
