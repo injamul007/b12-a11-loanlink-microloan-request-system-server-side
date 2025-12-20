@@ -132,22 +132,22 @@ async function run() {
     });
 
     //? get the role of a user by users email
-    app.get('/users/role', verifyJWT, async(req,res) => {
+    app.get("/users/role", verifyJWT, async (req, res) => {
       try {
-        const result = await usersCollection.findOne({email: req.tokenEmail})
+        const result = await usersCollection.findOne({ email: req.tokenEmail });
         res.status(200).json({
           status: true,
           message: "Get the users role by email successful",
           role: result?.role,
-        })
+        });
       } catch (error) {
         res.status(500).json({
           status: false,
           message: "Failed to get users role by email",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     //? available loans get api by show on home with limit
     app.get("/available-loans", async (req, res) => {
@@ -450,18 +450,18 @@ async function run() {
     });
 
     //? Delete api for single loan to delete the loan in manage loans page
-    app.delete('/manage-loans/deleted/:id', async(req,res) => {
+    app.delete("/manage-loans/deleted/:id", async (req, res) => {
       try {
         const loan_id = req.params.id;
         //? validate loan id is valid or not
-        if(!ObjectId.isValid(loan_id)) {
+        if (!ObjectId.isValid(loan_id)) {
           return res.status(400).json({
             status: false,
             message: "Invalid loan id",
-          })
+          });
         }
-        const query = {_id: new ObjectId(loan_id)}
-        const result = await loansCollection.deleteOne(query)
+        const query = { _id: new ObjectId(loan_id) };
+        const result = await loansCollection.deleteOne(query);
         res.status(200).json({
           status: true,
           message: "Deleted single loan successful",
@@ -472,9 +472,9 @@ async function run() {
           status: false,
           message: "Failed to delete single loan",
           error: error.message,
-        })
+        });
       }
-    })
+    });
 
     //? get single api to show loan details from loan application in my loans page
     // app.get("/my-loans/view/:id", verifyJWT, async (req, res) => {
@@ -662,6 +662,33 @@ async function run() {
         res.status(500).json({
           status: false,
           message: "Failed to get all the approved application by status",
+          error: error.message,
+        });
+      }
+    });
+
+    //? Get all the users to show in manage users in admin panel
+    app.get("/manage-users", verifyJWT, async (req, res) => {
+      try {
+        const adminEmail = req.tokenEmail;
+        const query = { email: {$ne: adminEmail}};
+        const users = await usersCollection.find(query).toArray();
+        //? validate users is available or not
+        if (users.length === 0) {
+          return res.status(404).json({
+            status: false,
+            message: "Users data not found",
+          });
+        }
+        res.status(200).json({
+          status: true,
+          message: "Get all the users successful",
+          users,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get all the users",
           error: error.message,
         });
       }
