@@ -694,6 +694,34 @@ async function run() {
       }
     });
 
+    //? patch api for update users role in manage users in admin panel
+    app.patch('/manage-users/update-role', verifyJWT, async(req,res) => {
+      try {
+        const roleData = req.body;
+        const query = {email: roleData.email}
+        const update = {
+          $set: {
+            role : roleData.role,
+            suspend_reason: roleData.suspend_reason,
+            suspend_feedback: roleData.suspend_feedback,
+            updated_by: req.tokenEmail,
+          }
+        }
+        const result = await usersCollection.updateOne(query, update)
+        res.status(200).json({
+          status: true,
+          message: "Patch/update users role successful",
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: 'Failed to patch/update users role',
+          error: error.message,
+        })
+      }
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
