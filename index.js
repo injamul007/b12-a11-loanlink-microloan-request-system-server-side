@@ -722,7 +722,7 @@ async function run() {
       }
     })
 
-    //? Get api for get all the loans in manage users in admin panel
+    //? Get api for get all the loans in all loans in admin panel
     app.get('/manage-users/all-loan', verifyJWT, async(req,res) => {
       try {
         const result = await loansCollection.find().sort({ created_at: -1 }).toArray()
@@ -735,6 +735,24 @@ async function run() {
         res.status(500).json({
           status: false,
           message: 'Failed to get all loan in admin panel',
+          error: error.message,
+        })
+      }
+    })
+
+    //? get api for get all the loan application form in loan application in admin panel
+    app.get('/manage-users/all-loan-application', verifyJWT, async(req,res) => {
+      try {
+        const result = await loanApplicationCollection.find().sort({created_at: -1}).toArray()
+        res.status(200).json({
+          status: true,
+          message: "get all the loan application form successful",
+          result,
+        })
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get all the loan application form",
           error: error.message,
         })
       }
