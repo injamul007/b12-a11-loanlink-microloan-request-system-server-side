@@ -62,7 +62,7 @@ const client = new MongoClient(uri, {
 app.get("/", (req, res) => {
   res.status(200).json({
     status: true,
-    message: "Microloan Server is Running Fine",
+    message: "LoanLink Server is Running Fine",
   });
 });
 
@@ -71,7 +71,7 @@ async function run() {
     await client.connect();
 
     //? Database and collection setup
-    const db = client.db("microloanDB");
+    const db = client.db("loanLinkDB");
     const loansCollection = db.collection("loans");
     const usersCollection = db.collection("users");
     const loanApplicationCollection = db.collection("loanApplication");
@@ -750,5 +750,5 @@ async function run() {
 run().catch(console.dir);
 
 app.listen(port, () => {
-  console.log(`Microloan Server is Running on Port: ${port}`);
+  console.log(`LoanLink Server is Running on Port: ${port}`);
 });
