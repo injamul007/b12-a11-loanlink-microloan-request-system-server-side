@@ -375,7 +375,7 @@ async function run() {
     });
 
     //? get api for single loan to show prefilled update form
-    app.get("/manage-loans/:id", async (req, res) => {
+    app.get("/manage-loans/:id", verifyJWT, async (req, res) => {
       try {
         const loan_id = req.params.id;
         const query = { _id: new ObjectId(loan_id) };
