@@ -76,6 +76,7 @@ async function run() {
     const loansCollection = db.collection("loans");
     const usersCollection = db.collection("users");
     const loanApplicationCollection = db.collection("loanApplication");
+    const paymentInfoCollection = db.collection("paymentInfo");
 
     //? Verify Admin Middleware with Database access to check admin activity
     const verifyAdmin = async (req, res, next) => {
@@ -378,7 +379,7 @@ async function run() {
         const paymentInfo = req.body;
         // console.log(paymentInfo)
         //? convert this Fixed value into US cents-->
-        const amountToPay = 10 * 100
+        const amountToPay = 10 * 100;
         const session = await stripe.checkout.sessions.create({
           line_items: [
             {
@@ -417,6 +418,81 @@ async function run() {
         res.status(500).json({
           status: false,
           message: "Failed to Create Stripe Payment checkout sessions",
+          error: error.message,
+        });
+      }
+    });
+
+    //? Session id api create endpoint
+    app.post("/payment-success", async (req, res) => {
+      try {
+        const sessionId = req.body.sessionId;
+        // console.log(sessionId);
+
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        console.log("session retrieve-->", session);
+        //? getting single plant data from db
+        const loan = await loanApplicationCollection.findOne({
+          _id: new ObjectId(session?.metadata?.loanId),
+        });
+
+        //? validate plant data from db
+        if (!loan) {
+          return res.status(404).json({
+            status: false,
+            message: "Loan not found",
+          });
+        }
+
+        const payment = await paymentInfoCollection.findOne({
+          transactionId: session?.payment_intent,
+        });
+
+        if (!payment) {
+          if (session?.payment_status !== "paid") {
+            return res.status(400).json({
+              status: false,
+              message: "Payment Not Complete",
+            });
+          } else {
+            const paymentInfo = {
+              loanId: session?.metadata?.loanId,
+              transactionId: session?.payment_intent,
+              customer_email: session?.customer_email,
+              payment_status: session?.payment_status,
+              loan_title: loan?.loan_title,
+              category: loan?.category,
+              quantity: 1,
+              price: session?.amount_total / 100,
+            };
+            console.log(paymentInfo);
+            const result = await paymentInfoCollection.insertOne(paymentInfo);
+
+            //? update application Fee Status
+            await loanApplicationCollection.updateOne(
+              {
+                _id: new ObjectId(session?.metadata?.loanId),
+              },
+              { $set: { application_fee_status: session?.payment_status, transactionId: session?.payment_intent, paid_at: new Date(), } }
+            );
+
+            res.status(201).json({
+              status: true,
+              message: "Payment Info created Successfully",
+              result,
+              loan,
+            });
+          }
+        } else {
+          return res.status(409).json({
+            status: false,
+            message: "Payment Info already exists",
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to create payment success api data",
           error: error.message,
         });
       }
