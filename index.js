@@ -545,10 +545,17 @@ async function run() {
     app.get("/manage-loans", verifyJWT, verifyManager, async (req, res) => {
       try {
         const query = { created_by: req.tokenEmail };
+
+        const search = req.query.search;
+        if (search) {
+          query.category = { $regex: search, $options: "i" };
+        }
+
         const result = await loansCollection
           .find(query)
           .sort({ created_at: -1 })
           .toArray();
+
         res.status(200).json({
           status: true,
           message: "Get all the loans by manager email successful",
