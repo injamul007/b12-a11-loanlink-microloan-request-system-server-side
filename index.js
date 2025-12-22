@@ -778,6 +778,34 @@ async function run() {
       }
     })
 
+     //? get api for single loan to show prefilled update form in Admin Panel
+    app.get("/manage-users/all-loan/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      try {
+        const loan_id = req.params.id;
+        const query = { _id: new ObjectId(loan_id) };
+        const loan = await loansCollection.findOne(query);
+
+        //? validate result
+        if (!loan) {
+          return res.status(404).json({
+            status: false,
+            message: "Loan not found",
+          });
+        }
+        res.status(200).json({
+          status: true,
+          message: "Get api for single data successful",
+          loan,
+        });
+      } catch (error) {
+        res.status(500).json({
+          status: false,
+          message: "Failed to get single loan data",
+          error: error.message,
+        });
+      }
+    });
+
     //? get api for get all the loan application form in loan application in admin panel
     app.get('/manage-users/all-loan-application', verifyJWT, verifyAdmin, async(req,res) => {
       try {
