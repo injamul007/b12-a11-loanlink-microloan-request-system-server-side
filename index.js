@@ -76,6 +76,24 @@ async function run() {
     const usersCollection = db.collection("users");
     const loanApplicationCollection = db.collection("loanApplication");
 
+    //? Verify Admin Middleware with Database access to check admin activity
+    const verifyAdmin = async(req,res,next) => {
+      try {
+        const email = req.tokenEmail
+        const user = await usersCollection.findOne({email})
+        if(!user || user?.role !== 'admin') {
+          return res.status(403).json({
+            status: false,
+            message: "Admin Actions Only",
+            role: user?.role
+          })
+        }
+        next();
+      } catch (error) {
+        console.log(error.message)
+      }
+    }
+
     //? save users data in db
     app.post("/users", async (req, res) => {
       try {
