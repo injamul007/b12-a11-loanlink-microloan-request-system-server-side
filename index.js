@@ -259,7 +259,7 @@ async function run() {
     });
 
     //? post api for add loan in loanCollection
-    app.post("/add-loan", verifyJWT, async (req, res) => {
+    app.post("/add-loan", verifyJWT, verifyManager, async (req, res) => {
       try {
         const loanData = req.body;
 
@@ -389,7 +389,7 @@ async function run() {
     });
 
     //? get all the loans added by manager by manager email
-    app.get("/manage-loans", verifyJWT, async (req, res) => {
+    app.get("/manage-loans", verifyJWT, verifyManager, async (req, res) => {
       try {
         const query = { created_by: req.tokenEmail };
         const result = await loansCollection
@@ -411,7 +411,7 @@ async function run() {
     });
 
     //? get api for single loan to show prefilled update form
-    app.get("/manage-loans/:id", verifyJWT, async (req, res) => {
+    app.get("/manage-loans/:id", verifyJWT, verifyManager, async (req, res) => {
       try {
         const loan_id = req.params.id;
         const query = { _id: new ObjectId(loan_id) };
@@ -486,7 +486,7 @@ async function run() {
     });
 
     //? Delete api for single loan to delete the loan in manage loans page
-    app.delete("/manage-loans/deleted/:id", async (req, res) => {
+    app.delete("/manage-loans/deleted/:id", verifyJWT, async (req, res) => {
       try {
         const loan_id = req.params.id;
         //? validate loan id is valid or not
@@ -577,7 +577,7 @@ async function run() {
     });
 
     //? get api for getting all the pending application form by status
-    app.get("/pending-application", verifyJWT, async (req, res) => {
+    app.get("/pending-application", verifyJWT, verifyManager, async (req, res) => {
       try {
         const query = { status: "pending" };
         const result = await loanApplicationCollection
@@ -602,6 +602,7 @@ async function run() {
     app.patch(
       "/pending-application/approved/:id",
       verifyJWT,
+      verifyManager,
       async (req, res) => {
         try {
           const pendingLoanId = req.params.id;
@@ -644,6 +645,7 @@ async function run() {
     app.patch(
       "/pending-application/rejected/:id",
       verifyJWT,
+      verifyManager,
       async (req, res) => {
         try {
           const pendingLoanId = req.params.id;
@@ -682,7 +684,7 @@ async function run() {
     );
 
     //? get api for getting all the approved application form by status
-    app.get("/approved-application", verifyJWT, async (req, res) => {
+    app.get("/approved-application", verifyJWT, verifyManager, async (req, res) => {
       try {
         const query = { status: "approved" };
         const result = await loanApplicationCollection
@@ -704,7 +706,7 @@ async function run() {
     });
 
     //? Get all the users to show in manage users in admin panel
-    app.get("/manage-users", verifyJWT, async (req, res) => {
+    app.get("/manage-users", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const adminEmail = req.tokenEmail;
         const query = { email: {$ne: adminEmail}};
@@ -731,7 +733,7 @@ async function run() {
     });
 
     //? patch api for update users role in manage users in admin panel
-    app.patch('/manage-users/update-role', verifyJWT, async(req,res) => {
+    app.patch('/manage-users/update-role', verifyJWT, verifyAdmin, async(req,res) => {
       try {
         const roleData = req.body;
         const query = {email: roleData.email}
@@ -759,7 +761,7 @@ async function run() {
     })
 
     //? Get api for get all the loans in all loans in admin panel
-    app.get('/manage-users/all-loan', verifyJWT, async(req,res) => {
+    app.get('/manage-users/all-loan', verifyJWT, verifyAdmin, async(req,res) => {
       try {
         const result = await loansCollection.find().sort({ created_at: -1 }).toArray()
         res.status(200).json({
@@ -777,7 +779,7 @@ async function run() {
     })
 
     //? get api for get all the loan application form in loan application in admin panel
-    app.get('/manage-users/all-loan-application', verifyJWT, async(req,res) => {
+    app.get('/manage-users/all-loan-application', verifyJWT, verifyAdmin, async(req,res) => {
       try {
         const result = await loanApplicationCollection.find().sort({created_at: -1}).toArray()
         res.status(200).json({
