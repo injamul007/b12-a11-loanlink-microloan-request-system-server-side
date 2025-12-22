@@ -94,6 +94,24 @@ async function run() {
       }
     }
 
+    //? Verify Manager Middleware with Database access to check Manager activity
+    const verifyManager = async(req,res,next) => {
+      try {
+        const email = req.tokenEmail
+        const user = await usersCollection.findOne({email})
+        if(!user || user?.role !== 'manager') {
+          return res.status(403).json({
+            status: false,
+            message: "Manager Actions Only",
+            role: user?.role
+          })
+        }
+        next();
+      } catch (error) {
+        console.log(error.message)
+      }
+    }
+
     //? save users data in db
     app.post("/users", async (req, res) => {
       try {
