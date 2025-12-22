@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(`${process.env.STRIPE_SECRET_KEY}`);
 const admin = require("firebase-admin");
 const port = process.env.PORT || 3000;
 
@@ -36,12 +37,12 @@ app.use(express.json());
 // JWT middlewares
 const verifyJWT = async (req, res, next) => {
   const token = req?.headers?.authorization?.split(" ")[1];
-  console.log(token);
+  // console.log(token);
   if (!token) return res.status(401).send({ message: "Unauthorized Access!" });
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     req.tokenEmail = decoded.email;
-    console.log(decoded);
+    // console.log(decoded);
     next();
   } catch (err) {
     console.log(err);
@@ -77,40 +78,40 @@ async function run() {
     const loanApplicationCollection = db.collection("loanApplication");
 
     //? Verify Admin Middleware with Database access to check admin activity
-    const verifyAdmin = async(req,res,next) => {
+    const verifyAdmin = async (req, res, next) => {
       try {
-        const email = req.tokenEmail
-        const user = await usersCollection.findOne({email})
-        if(!user || user?.role !== 'admin') {
+        const email = req.tokenEmail;
+        const user = await usersCollection.findOne({ email });
+        if (!user || user?.role !== "admin") {
           return res.status(403).json({
             status: false,
             message: "Admin Actions Only",
-            role: user?.role
-          })
+            role: user?.role,
+          });
         }
         next();
       } catch (error) {
-        console.log(error.message)
+        console.log(error.message);
       }
-    }
+    };
 
     //? Verify Manager Middleware with Database access to check Manager activity
-    const verifyManager = async(req,res,next) => {
+    const verifyManager = async (req, res, next) => {
       try {
-        const email = req.tokenEmail
-        const user = await usersCollection.findOne({email})
-        if(!user || user?.role !== 'manager') {
+        const email = req.tokenEmail;
+        const user = await usersCollection.findOne({ email });
+        if (!user || user?.role !== "manager") {
           return res.status(403).json({
             status: false,
             message: "Manager Actions Only",
-            role: user?.role
-          })
+            role: user?.role,
+          });
         }
         next();
       } catch (error) {
-        console.log(error.message)
+        console.log(error.message);
       }
-    }
+    };
 
     //? save users data in db
     app.post("/users", async (req, res) => {
@@ -189,7 +190,11 @@ async function run() {
     app.get("/available-loans", async (req, res) => {
       try {
         const query = { show_on_home: true };
-        const result = await loansCollection.find(query).sort({created_at: -1}).limit(6).toArray();
+        const result = await loansCollection
+          .find(query)
+          .sort({ created_at: -1 })
+          .limit(6)
+          .toArray();
         res.status(200).json({
           status: true,
           message: "Available loans get api successful",
@@ -361,6 +366,57 @@ async function run() {
         res.status(500).json({
           status: false,
           message: "Failed to post loan application",
+          error: error.message,
+        });
+      }
+    });
+
+    //? Stripe Payment Related APis
+    //? Post api for Stripe Create checkout session
+    app.post("/create-checkout-session", async (req, res) => {
+      try {
+        const paymentInfo = req.body;
+        // console.log(paymentInfo)
+        //? convert this Fixed value into US cents-->
+        const amountToPay = 10 * 100
+        const session = await stripe.checkout.sessions.create({
+          line_items: [
+            {
+              price_data: {
+                currency: "usd",
+                product_data: {
+                  name: paymentInfo?.loan_title,
+                  description: paymentInfo?.category,
+                },
+                unit_amount: amountToPay,
+              },
+              quantity: 1,
+            },
+          ],
+          customer_email: paymentInfo?.customer_email || undefined,
+          mode: "payment",
+          metadata: {
+            loanId: paymentInfo?.loan_id || "",
+            customer_name: paymentInfo?.customer_name || undefined,
+            customer_email: paymentInfo?.customer_email || undefined,
+          },
+          success_url: `${process.env.CLIENT_DOMAIN_URL}/dashboard/my-loans/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.CLIENT_DOMAIN_URL}/dashboard/my-loans/payment-cancel`,
+        });
+        // console.log(session)
+        // console.log(session.id)
+        // console.log(session.payment_status)
+        res.status(201).json({
+          status: true,
+          message: "Stripe payment checkout session created successful",
+          url: session.url,
+          id: session.id,
+        });
+      } catch (error) {
+        console.log(error.message);
+        res.status(500).json({
+          status: false,
+          message: "Failed to Create Stripe Payment checkout sessions",
           error: error.message,
         });
       }
@@ -577,26 +633,31 @@ async function run() {
     });
 
     //? get api for getting all the pending application form by status
-    app.get("/pending-application", verifyJWT, verifyManager, async (req, res) => {
-      try {
-        const query = { status: "pending" };
-        const result = await loanApplicationCollection
-          .find(query)
-          .sort({ created_at: -1 })
-          .toArray();
-        res.status(200).json({
-          status: true,
-          message: "Get all the pending application by status is successful",
-          result,
-        });
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to get all the pending application by status",
-          error: error.message,
-        });
+    app.get(
+      "/pending-application",
+      verifyJWT,
+      verifyManager,
+      async (req, res) => {
+        try {
+          const query = { status: "pending" };
+          const result = await loanApplicationCollection
+            .find(query)
+            .sort({ created_at: -1 })
+            .toArray();
+          res.status(200).json({
+            status: true,
+            message: "Get all the pending application by status is successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message: "Failed to get all the pending application by status",
+            error: error.message,
+          });
+        }
       }
-    });
+    );
 
     //? patch single api for approved application in pending application page
     app.patch(
@@ -684,32 +745,37 @@ async function run() {
     );
 
     //? get api for getting all the approved application form by status
-    app.get("/approved-application", verifyJWT, verifyManager, async (req, res) => {
-      try {
-        const query = { status: "approved" };
-        const result = await loanApplicationCollection
-          .find(query)
-          .sort({ approved_at: -1 })
-          .toArray();
-        res.status(200).json({
-          status: true,
-          message: "Get all the approved application by status is successful",
-          result,
-        });
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to get all the approved application by status",
-          error: error.message,
-        });
+    app.get(
+      "/approved-application",
+      verifyJWT,
+      verifyManager,
+      async (req, res) => {
+        try {
+          const query = { status: "approved" };
+          const result = await loanApplicationCollection
+            .find(query)
+            .sort({ approved_at: -1 })
+            .toArray();
+          res.status(200).json({
+            status: true,
+            message: "Get all the approved application by status is successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message: "Failed to get all the approved application by status",
+            error: error.message,
+          });
+        }
       }
-    });
+    );
 
     //? Get all the users to show in manage users in admin panel
     app.get("/manage-users", verifyJWT, verifyAdmin, async (req, res) => {
       try {
         const adminEmail = req.tokenEmail;
-        const query = { email: {$ne: adminEmail}};
+        const query = { email: { $ne: adminEmail } };
         const users = await usersCollection.find(query).toArray();
         //? validate users is available or not
         if (users.length === 0) {
@@ -733,96 +799,122 @@ async function run() {
     });
 
     //? patch api for update users role in manage users in admin panel
-    app.patch('/manage-users/update-role', verifyJWT, verifyAdmin, async(req,res) => {
-      try {
-        const roleData = req.body;
-        const query = {email: roleData.email}
-        const update = {
-          $set: {
-            role : roleData.role,
-            suspend_reason: roleData.suspend_reason,
-            suspend_feedback: roleData.suspend_feedback,
-            updated_by: req.tokenEmail,
-          }
-        }
-        const result = await usersCollection.updateOne(query, update)
-        res.status(200).json({
-          status: true,
-          message: "Patch/update users role successful",
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: 'Failed to patch/update users role',
-          error: error.message,
-        })
-      }
-    })
-
-    //? Get api for get all the loans in all loans in admin panel
-    app.get('/manage-users/all-loan', verifyJWT, verifyAdmin, async(req,res) => {
-      try {
-        const result = await loansCollection.find().sort({ created_at: -1 }).toArray()
-        res.status(200).json({
-          status: true,
-          message: 'Get all loan in admin panel Successful',
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: 'Failed to get all loan in admin panel',
-          error: error.message,
-        })
-      }
-    })
-
-     //? get api for single loan to show prefilled update form in Admin Panel
-    app.get("/manage-users/all-loan/:id", verifyJWT, verifyAdmin, async (req, res) => {
-      try {
-        const loan_id = req.params.id;
-        const query = { _id: new ObjectId(loan_id) };
-        const loan = await loansCollection.findOne(query);
-
-        //? validate result
-        if (!loan) {
-          return res.status(404).json({
+    app.patch(
+      "/manage-users/update-role",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const roleData = req.body;
+          const query = { email: roleData.email };
+          const update = {
+            $set: {
+              role: roleData.role,
+              suspend_reason: roleData.suspend_reason,
+              suspend_feedback: roleData.suspend_feedback,
+              updated_by: req.tokenEmail,
+            },
+          };
+          const result = await usersCollection.updateOne(query, update);
+          res.status(200).json({
+            status: true,
+            message: "Patch/update users role successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
             status: false,
-            message: "Loan not found",
+            message: "Failed to patch/update users role",
+            error: error.message,
           });
         }
-        res.status(200).json({
-          status: true,
-          message: "Get api for single data successful",
-          loan,
-        });
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to get single loan data",
-          error: error.message,
-        });
       }
-    });
+    );
+
+    //? Get api for get all the loans in all loans in admin panel
+    app.get(
+      "/manage-users/all-loan",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const result = await loansCollection
+            .find()
+            .sort({ created_at: -1 })
+            .toArray();
+          res.status(200).json({
+            status: true,
+            message: "Get all loan in admin panel Successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message: "Failed to get all loan in admin panel",
+            error: error.message,
+          });
+        }
+      }
+    );
+
+    //? get api for single loan to show prefilled update form in Admin Panel
+    app.get(
+      "/manage-users/all-loan/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const loan_id = req.params.id;
+          const query = { _id: new ObjectId(loan_id) };
+          const loan = await loansCollection.findOne(query);
+
+          //? validate result
+          if (!loan) {
+            return res.status(404).json({
+              status: false,
+              message: "Loan not found",
+            });
+          }
+          res.status(200).json({
+            status: true,
+            message: "Get api for single data successful",
+            loan,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message: "Failed to get single loan data",
+            error: error.message,
+          });
+        }
+      }
+    );
 
     //? get api for get all the loan application form in loan application in admin panel
-    app.get('/manage-users/all-loan-application', verifyJWT, verifyAdmin, async(req,res) => {
-      try {
-        const result = await loanApplicationCollection.find().sort({created_at: -1}).toArray()
-        res.status(200).json({
-          status: true,
-          message: "get all the loan application form successful",
-          result,
-        })
-      } catch (error) {
-        res.status(500).json({
-          status: false,
-          message: "Failed to get all the loan application form",
-          error: error.message,
-        })
+    app.get(
+      "/manage-users/all-loan-application",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const result = await loanApplicationCollection
+            .find()
+            .sort({ created_at: -1 })
+            .toArray();
+          res.status(200).json({
+            status: true,
+            message: "get all the loan application form successful",
+            result,
+          });
+        } catch (error) {
+          res.status(500).json({
+            status: false,
+            message: "Failed to get all the loan application form",
+            error: error.message,
+          });
+        }
       }
-    })
+    );
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
