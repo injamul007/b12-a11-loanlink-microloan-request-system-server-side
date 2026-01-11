@@ -4,3 +4,4 @@
 ## install npm cors for middleware
 ## install npm dotenv for environment variables
 ## install npm firebase admin-SDK service key to set token
+## install npm Stipe Payment to set the payment method
