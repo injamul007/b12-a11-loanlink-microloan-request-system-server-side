@@ -216,13 +216,28 @@ async function run() {
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const category = req.query.category || "";
-        console.log(category)
+        const minLoanLimit = req.query.minLoanLimit
+          ? Number(req.query.minLoanLimit)
+          : undefined;
+        const maxLoanLimit = req.query.maxLoanLimit
+          ? Number(req.query.maxLoanLimit)
+          : undefined;
+
+        console.log(minLoanLimit, maxLoanLimit);
 
         const skip = (page - 1) * limit;
 
         const query = {};
-        if(category) {
-          query.category = { $regex: category, $options: "i" }
+        if (category) {
+          query.category = { $regex: category, $options: "i" };
+        }
+
+        if (minLoanLimit !== undefined && maxLoanLimit !== undefined) {
+          query.max_loan_limit = { $gte: minLoanLimit, $lte: maxLoanLimit };
+        } else if (minLoanLimit !== undefined) {
+          query.max_loan_limit = { $gte: minLoanLimit };
+        } else if (maxLoanLimit !== undefined) {
+          query.max_loan_limit = { $lte: maxLoanLimit };
         }
 
         const result = await loansCollection
@@ -231,7 +246,7 @@ async function run() {
           .limit(limit)
           .toArray();
 
-        const total = await loansCollection.countDocuments();
+        const total = await loansCollection.countDocuments(query);
 
         res.status(200).json({
           status: true,
