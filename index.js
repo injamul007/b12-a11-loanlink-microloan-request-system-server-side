@@ -223,8 +223,27 @@ async function run() {
           ? Number(req.query.maxLoanLimit)
           : undefined;
         const search = req.query.search || "";
+        const sort = req.query.sort || "created_at";
+        const order = req.query.order || "desc";
 
-        console.log(search);
+        // whitelist
+        const allowedSortFields = [
+          "created_at",
+          "max_loan_limit",
+          "interest_rate",
+        ];
+
+        // validate sort field
+        const sortField = allowedSortFields.includes(sort)
+          ? sort
+          : "created_at";
+
+        // validate order
+        const sortOrder = order === "asc" ? 1 : -1;
+
+        const sortOptions = {
+          [sortField]: sortOrder,
+        };
 
         const skip = (page - 1) * limit;
 
@@ -247,6 +266,7 @@ async function run() {
 
         const result = await loansCollection
           .find(query)
+          .sort(sortOptions)
           .skip(skip)
           .limit(limit)
           .toArray();
