@@ -222,8 +222,9 @@ async function run() {
         const maxLoanLimit = req.query.maxLoanLimit
           ? Number(req.query.maxLoanLimit)
           : undefined;
+        const search = req.query.search || "";
 
-        console.log(minLoanLimit, maxLoanLimit);
+        console.log(search);
 
         const skip = (page - 1) * limit;
 
@@ -238,6 +239,10 @@ async function run() {
           query.max_loan_limit = { $gte: minLoanLimit };
         } else if (maxLoanLimit !== undefined) {
           query.max_loan_limit = { $lte: maxLoanLimit };
+        }
+
+        if (search) {
+          query.loan_title = { $regex: search, $options: "i" };
         }
 
         const result = await loansCollection
